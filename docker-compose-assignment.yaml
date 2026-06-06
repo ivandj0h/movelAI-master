@@ -1,0 +1,15 @@
+version: "3.7"
+services:
+  web-ros:
+    image: registry.gitlab.com/movelai_public/assignment/web_ros:1.0.0
+    container_name: web-ros
+    network_mode: "host"
+    user: movelros
+    environment:
+      MOVEL_MODE: deployment
+      AUX_MODE: new
+      DISPLAY: ":0"
+      QT_X11_NO_MITSHM: 1
+      QT_GRAPHICSSYSTEM: native
+      ROSCONSOLE_STDOUT_LINE_BUFFERED: 1   # flush INFO logs immediately
+    entrypoint: bash -c 'source /ros_entrypoint.sh && roslaunch pose_pub_sub assignment.launch'

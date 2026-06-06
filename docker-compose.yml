@@ -1,0 +1,38 @@
+services:
+  backend:
+    build:
+      context: ./apps/backend
+    container_name: movel-backend
+    env_file:
+      - .env
+    ports:
+      - "${BACKEND_PORT:-4000}:4000"
+    networks:
+      - movel-network
+
+  frontend:
+    build:
+      context: ./apps/frontend
+    container_name: movel-frontend
+    env_file:
+      - .env
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    depends_on:
+      - backend
+    networks:
+      - movel-network
+
+  ros-plugin:
+    build:
+      context: ./apps/ros-plugin
+    container_name: movel-ros-plugin
+    env_file:
+      - .env
+    network_mode: "host"
+    depends_on:
+      - backend
+
+networks:
+  movel-network:
+    name: movel-network
