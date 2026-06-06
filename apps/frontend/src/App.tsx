@@ -125,8 +125,8 @@ function App() {
             <h1>ROS Robot Control Dashboard</h1>
           </div>
 
-          <div className={`status-pill ${isStale ? "stale" : "connected"}`}>
-            {isStale ? "Stale / Disconnected" : "Connected"}
+          <div className={`status-pill ${error || isStale ? "stale" : "connected"}`}>
+            {error || isStale ? "Disconnected" : "Connected"}
           </div>
         </div>
 
@@ -140,7 +140,7 @@ function App() {
             <div className="map">
               <div className="axis horizontal" />
               <div className="axis vertical" />
-              <div className="robot-dot" style={dotPosition} />
+              <div className={`robot-dot ${error || isStale ? "disconnected" : "connected"}`} style={dotPosition} />
             </div>
 
             <p className="hint">
