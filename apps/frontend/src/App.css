@@ -71,17 +71,20 @@ h2 {
   border: 1px solid #333;
   padding: 8px 12px;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
   background: #fff;
 }
 
 .status-pill.connected {
-  color: #111;
+  color: #0f5132;
+  border-color: #0f5132;
+  background: #d1e7dd;
 }
 
 .status-pill.stale {
-  color: #111;
-  background: #f5f5f5;
+  color: #842029;
+  border-color: #842029;
+  background: #f8d7da;
 }
 
 .content-grid {
@@ -155,7 +158,16 @@ h2 {
   transform: translate(-50%, -50%);
   transition:
     left 180ms ease,
-    top 180ms ease;
+    top 180ms ease,
+    background 180ms ease;
+}
+
+.robot-dot.connected {
+  background: #198754;
+}
+
+.robot-dot.disconnected {
+  background: #dc3545;
 }
 
 .hint,
@@ -223,13 +235,13 @@ kbd {
   height: 42px;
   cursor: pointer;
   border: 1px solid #333;
-  background: #fff;
+  background: #d4d4d4;
   color: #111;
   font-weight: 700;
 }
 
 .keypad button:hover {
-  background: #f1f1f1;
+  background: #bdbdbd;
 }
 
 @media (max-width: 880px) {
