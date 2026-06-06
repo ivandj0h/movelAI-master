@@ -6,8 +6,8 @@ import time
 from datetime import datetime, timezone
 from threading import Lock, Thread
 
-import roslibpy
-import websocket
+import roslibpy # type: ignore
+import websocket # type: ignore
 
 
 ROBOT_ID = os.getenv("ROBOT_ID", "robot-1")

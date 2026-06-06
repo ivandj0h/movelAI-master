@@ -1,16 +1,16 @@
 # Movel AI ROS Plugin Integration
 
-A small robot-to-cloud integration system for the Movel AI ROS Plugin Integration assignment.
+A simple robot-to-cloud integration demo for the Movel AI ROS Plugin Integration assignment.
 
-This repository does **not** build the ROS simulation. The ROS simulation is provided separately by Movel AI through `docker-compose-assignment.yaml`.
+This repository does not include the ROS simulation implementation. The simulation is provided separately by Movel AI through `docker-compose-assignment.yaml`.
 
-This repository builds only:
+This project contains three services:
 
 1. ROS Plugin
 2. Cloud Backend
 3. Frontend
 
-The goal is to demonstrate clean service boundaries, robot-to-cloud communication, Docker networking, and reliable state flow.
+The main idea is to keep ROS-specific logic inside the ROS Plugin, expose robot state through the backend, and keep the frontend as a simple browser dashboard.
 
 ---
 
@@ -18,10 +18,9 @@ The goal is to demonstrate clean service boundaries, robot-to-cloud communicatio
 
 ```text
 Provided ROS Simulation
-  topics:
-    /pose
-    /battery_percentage
-    /cmd
+  /pose
+  /battery_percentage
+  /cmd
         |
         | ROSBridge WebSocket
         v
@@ -36,29 +35,17 @@ Cloud Backend
 Frontend
 ```
 
-## Service Boundaries
-
-- Only the ROS Plugin talks to ROS.
-- The Cloud Backend does not read ROS topics directly.
-- The Frontend does not connect to ROS directly.
-- The Frontend only talks to the Cloud Backend.
-- The ROS Plugin forwards telemetry upward and commands downward.
+The ROS Plugin is the only service that talks directly to ROS. The backend receives telemetry from the plugin and exposes simple APIs for the frontend. The frontend only talks to the backend.
 
 ---
 
-## Technology Stack
+## Tech Stack
 
 ### ROS Plugin
 
 - Python
 - `roslibpy`
 - `websocket-client`
-- Connects to ROSBridge on port `9090`
-- Subscribes to:
-  - `/pose`
-  - `/battery_percentage`
-- Publishes to:
-  - `/cmd`
 
 ### Cloud Backend
 
@@ -66,37 +53,156 @@ Frontend
 - TypeScript
 - Express
 - `ws`
-- In-memory latest robot state
-- REST API for frontend
-- WebSocket endpoint for ROS Plugin
 
 ### Frontend
 
 - React
 - TypeScript
 - Vite
-- Simple robot dashboard
-- Keyboard control using `W`, `A`, `S`, `D`
 
 ---
 
-## Backend API
+## Prerequisites
 
-### `GET /health`
+Required:
 
-Returns backend health, plugin connection status, and latest telemetry timestamp.
+- Git
+- Docker
+- Docker Compose
+
+Optional for local development outside Docker:
+
+- Node.js 22
+- Python 3.12+
+
+The project is intended to run through Docker Compose, so Node.js and Python are not required on the host machine unless you want to run the services manually.
+
+---
+
+## How to Run
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/ivandj0h/movelAI-master.git
+cd movelAI-master
+```
+
+### 2. Prepare Environment File
+
+```bash
+cp .env.example .env
+```
+
+Default values:
+
+```env
+BACKEND_PORT=4000
+BACKEND_HOST=0.0.0.0
+
+FRONTEND_PORT=3000
+VITE_API_BASE_URL=http://localhost:4000
+
+ROBOT_ID=robot-1
+BACKEND_WS_URL=ws://127.0.0.1:4000/ws/plugin
+
+ROSBRIDGE_HOST=127.0.0.1
+ROSBRIDGE_PORT=9090
+```
+
+### 3. Start the Provided ROS Simulation
+
+The provided simulation compose file should be available as:
+
+```text
+docker-compose-assignment.yaml
+```
+
+Start it first:
+
+```bash
+docker compose -f docker-compose-assignment.yaml up -d
+```
+
+Check that the simulation container is running:
+
+```bash
+docker ps --filter "name=web-ros"
+```
+
+### 4. Start This Project
+
+```bash
+docker compose up --build -d
+```
+
+This starts:
+
+- `movel-backend`
+- `movel-frontend`
+- `movel-ros-plugin`
+
+### 5. Open the Frontend
+
+```text
+http://localhost:3000
+```
+
+---
+
+## How to Verify
+
+### 1. Check ROS Topics
+
+List topics from the provided ROS container:
+
+```bash
+docker exec web-ros bash -lc 'source /ros_entrypoint.sh && rostopic list'
+```
+
+Expected topics include:
+
+```text
+/pose
+/battery_percentage
+/cmd
+```
+
+Check pose data:
+
+```bash
+docker exec web-ros bash -lc 'source /ros_entrypoint.sh && timeout 5 rostopic echo /pose || true'
+```
+
+Check battery data:
+
+```bash
+docker exec web-ros bash -lc 'source /ros_entrypoint.sh && timeout 5 rostopic echo /battery_percentage || true'
+```
+
+### 2. Check Backend Health
+
+```bash
+curl http://localhost:4000/health
+```
+
+Expected result:
 
 ```json
 {
   "status": "ok",
   "plugin_connected": true,
-  "last_telemetry_at": "2026-06-06T08:09:36.497280Z"
+  "last_telemetry_at": "..."
 }
 ```
 
-### `GET /api/robot/state`
+### 3. Check Robot State
 
-Returns latest robot state.
+```bash
+curl http://localhost:4000/api/robot/state
+```
+
+Expected result:
 
 ```json
 {
@@ -106,13 +212,43 @@ Returns latest robot state.
     "y": -1
   },
   "battery_percentage": 101,
-  "timestamp": "2026-06-06T08:12:19.253069Z"
+  "timestamp": "..."
 }
 ```
 
+### 4. Check Frontend Control
+
+Open:
+
+```text
+http://localhost:3000
+```
+
+Then press:
+
+```text
+W A S D
+```
+
+The dashboard should update the robot position and show the latest position data.
+
+---
+
+## Backend API
+
+### `GET /health`
+
+Returns backend status and ROS Plugin connection status.
+
+### `GET /api/robot/state`
+
+Returns the latest robot position, battery percentage, and timestamp.
+
 ### `POST /api/robot/command`
 
-Sends a movement command.
+Sends a movement command to the robot.
+
+Request body:
 
 ```json
 {
@@ -131,266 +267,28 @@ Valid commands:
 
 ---
 
-## Environment Variables
+## Protocol Choice
 
-Copy `.env.example` to `.env`.
+The ROS Plugin communicates with the backend using WebSocket.
 
-```bash
-cp .env.example .env
-```
+I used WebSocket for this part because the communication is two-way:
 
-Current example:
+- the plugin sends telemetry to the backend
+- the backend sends movement commands back to the plugin
 
-```env
-BACKEND_PORT=4000
-BACKEND_HOST=0.0.0.0
-
-FRONTEND_PORT=3000
-VITE_API_BASE_URL=http://localhost:4000
-
-ROBOT_ID=robot-1
-BACKEND_WS_URL=ws://127.0.0.1:4000/ws/plugin
-
-ROSBRIDGE_HOST=127.0.0.1
-ROSBRIDGE_PORT=9090
-```
-
-Note for Docker Desktop on macOS:
-
-The provided `web-ros` container uses `network_mode: "host"`. Because of that, the ROS Plugin also runs with `network_mode: "host"` and connects to ROSBridge through `127.0.0.1:9090`.
+For the frontend, I used simple REST calls and polling because the UI only needs to show the latest robot state. This keeps the frontend easy to follow and avoids extra complexity.
 
 ---
 
-## How to Run
+## Known Limitations
 
-### 1. Use Node 22
-
-```bash
-nvm use
-```
-
-### 2. Start the Provided ROS Simulation
-
-Download the Movel AI provided compose file as:
-
-```text
-docker-compose-assignment.yaml
-```
-
-Start it:
-
-```bash
-docker compose -f docker-compose-assignment.yaml up -d
-```
-
-Check the ROS container:
-
-```bash
-docker ps --filter "name=web-ros"
-```
-
-### 3. Verify ROS Topics
-
-List topics:
-
-```bash
-docker exec web-ros bash -lc 'source /ros_entrypoint.sh && rostopic list'
-```
-
-Check `/pose`:
-
-```bash
-docker exec web-ros bash -lc 'source /ros_entrypoint.sh && timeout 5 rostopic echo /pose || true'
-```
-
-Check `/battery_percentage`:
-
-```bash
-docker exec web-ros bash -lc 'source /ros_entrypoint.sh && timeout 5 rostopic echo /battery_percentage || true'
-```
-
-Send manual command:
-
-```bash
-docker exec web-ros bash -lc 'source /ros_entrypoint.sh && rostopic pub -1 /cmd std_msgs/String "data: '\''w'\''"'
-```
-
-### 4. Start This Project
-
-```bash
-docker compose up --build -d
-```
-
-This starts:
-
-- `movel-backend`
-- `movel-frontend`
-- `movel-ros-plugin`
-
-### 5. Check Backend Health
-
-```bash
-curl http://localhost:4000/health
-```
-
-Expected:
-
-```json
-{
-  "status": "ok",
-  "plugin_connected": true,
-  "last_telemetry_at": "..."
-}
-```
-
-### 6. Check Robot State
-
-```bash
-curl http://localhost:4000/api/robot/state
-```
-
-Expected:
-
-```json
-{
-  "robot_id": "robot-1",
-  "position": {
-    "x": 1,
-    "y": -1
-  },
-  "battery_percentage": 101,
-  "timestamp": "..."
-}
-```
-
-### 7. Open Frontend
-
-```text
-http://localhost:3000
-```
-
-The frontend shows:
-
-- Robot position
-- Battery percentage
-- Connected / stale status
-- Keyboard controls
-- Last command status
-
-Use keyboard:
-
-```text
-W A S D
-```
+- The backend stores only the latest robot state in memory.
+- The current implementation is focused on one robot.
+- Authentication is not included.
+- Docker host networking can behave differently across operating systems.
 
 ---
 
-## Verification Checklist
+## Notes
 
-### ROS Simulation
-
-- `/pose` publishes position.
-- `/battery_percentage` publishes battery value.
-- `/cmd` accepts `w`, `a`, `s`, `d`.
-
-### ROS Plugin
-
-Check logs:
-
-```bash
-docker compose logs -f ros-plugin
-```
-
-Expected logs:
-
-```text
-connected to ROS bridge
-subscribed to /pose
-subscribed to /battery_percentage
-connected to backend websocket
-sent telemetry robot=robot-1 ...
-publishing command to /cmd: w
-```
-
-### Backend
-
-Check health:
-
-```bash
-curl http://localhost:4000/health
-```
-
-Check state:
-
-```bash
-curl http://localhost:4000/api/robot/state
-```
-
-Send command:
-
-```bash
-curl -X POST http://localhost:4000/api/robot/command \
-  -H "Content-Type: application/json" \
-  -d '{"command":"a"}'
-```
-
-### Frontend
-
-- Open `http://localhost:3000`
-- Confirm robot dot is displayed.
-- Confirm battery percentage is displayed.
-- Press `W`, `A`, `S`, `D`.
-- Confirm robot position changes.
-
----
-
-## Communication Protocol
-
-The ROS Plugin communicates with the Cloud Backend using WebSocket.
-
-Reason:
-
-- Telemetry needs to flow from ROS Plugin to Backend.
-- Movement commands need to flow from Backend to ROS Plugin.
-- WebSocket supports bidirectional communication in one persistent connection.
-- It is simple enough for this assignment without adding unnecessary infrastructure.
-
-Trade-offs:
-
-- Requires reconnect handling.
-- Requires connection state tracking.
-- Current implementation supports one plugin connection.
-- A production version should add authentication, robot identity validation, and stronger multi-robot routing.
-
----
-
-## Known Issues and Limitations
-
-- Latest robot state is stored in memory only.
-- Backend restart clears the latest state.
-- Authentication is not implemented.
-- Current setup is designed for one robot: `robot-1`.
-- Frontend uses polling for robot state.
-- ROSBridge networking may behave differently outside Docker Desktop macOS.
-- The provided mock battery value can be above 100.
-- The UI is intentionally simple and focuses on integration correctness.
-
----
-
-## Walkthrough Video Notes
-
-Recommended walkthrough order:
-
-1. Explain that ROS simulation is provided by Movel AI.
-2. Explain that this repo builds only ROS Plugin, Cloud Backend, and Frontend.
-3. Show `docker-compose-assignment.yaml` running `web-ros`.
-4. Show ROS topics: `/pose`, `/battery_percentage`, `/cmd`.
-5. Start custom stack with `docker compose up --build -d`.
-6. Show ROS Plugin logs connected to ROSBridge and backend.
-7. Show backend `/health`.
-8. Show backend `/api/robot/state`.
-9. Open frontend.
-10. Press `W`, `A`, `S`, `D`.
-11. Show command logs from ROS Plugin.
-12. Explain why WebSocket was used.
-13. Mention known limitations and possible improvements.
+The provided ROS simulation uses host networking. This project was tested with Docker Desktop on macOS. On Linux, host networking is usually more direct. On Windows, Docker networking may need adjustment if the ROS Plugin cannot reach ROSBridge on port `9090`.
