@@ -249,3 +249,52 @@ kbd {
     min-height: 320px;
   }
 }
+
+.debug-accordion {
+  margin-top: 16px;
+  border-top: 1px solid #ddd;
+  padding-top: 12px;
+}
+
+.debug-toggle {
+  cursor: pointer;
+  border: 1px solid #333;
+  background: #fff;
+  color: #111;
+  padding: 8px 12px;
+  font-weight: 700;
+}
+
+.debug-toggle:hover {
+  background: #f1f1f1;
+}
+
+.debug-panel {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.debug-panel > div {
+  border: 1px solid #777;
+  padding: 12px;
+  background: #fff;
+}
+
+.debug-panel h3 {
+  margin: 0 0 10px;
+  font-size: 15px;
+}
+
+.debug-panel p {
+  margin: 0 0 6px;
+  color: #222;
+  font-size: 14px;
+}
+
+@media (max-width: 880px) {
+  .debug-panel {
+    grid-template-columns: 1fr;
+  }
+}
