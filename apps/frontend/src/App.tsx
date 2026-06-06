@@ -24,6 +24,8 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [lastCommand, setLastCommand] = useState<string | null>(null);
   const [commandStatus, setCommandStatus] = useState<string | null>(null);
+  const [initialRobotState, setInitialRobotState] = useState<RobotState | null>(null);
+  const [isDebugOpen, setIsDebugOpen] = useState(false);
 
   const fetchRobotState = useCallback(async () => {
     try {
@@ -36,6 +38,7 @@ function App() {
       const data = (await response.json()) as RobotState;
 
       setRobotState(data);
+      setInitialRobotState((current) => current ?? data);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown API error");
@@ -143,6 +146,56 @@ function App() {
             <p className="hint">
               Press <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> to move the robot.
             </p>
+
+            <section className="debug-accordion">
+              <button
+                className="debug-toggle"
+                type="button"
+                onClick={() => setIsDebugOpen((value) => !value)}
+              >
+                {isDebugOpen ? "Hide" : "Show"} Position Data
+              </button>
+
+              {isDebugOpen ? (
+                <div className="debug-panel">
+                  <div>
+                    <h3>Initial Position Data</h3>
+                    <p>Robot ID: {initialRobotState?.robot_id ?? "-"}</p>
+                    <p>X Position: {initialRobotState?.position.x ?? "-"}</p>
+                    <p>Y Position: {initialRobotState?.position.y ?? "-"}</p>
+                    <p>
+                      Battery:{" "}
+                      {initialRobotState
+                        ? `${initialRobotState.battery_percentage}%`
+                        : "-"}
+                    </p>
+                    <p>
+                      Timestamp:{" "}
+                      {initialRobotState
+                        ? new Date(initialRobotState.timestamp).toLocaleString()
+                        : "-"}
+                    </p>
+                  </div>
+
+                  <div>
+                    <h3>Latest Position After W/A/S/D</h3>
+                    <p>Last Command: {lastCommand ?? "-"}</p>
+                    <p>X Position: {robotState?.position.x ?? "-"}</p>
+                    <p>Y Position: {robotState?.position.y ?? "-"}</p>
+                    <p>
+                      Battery:{" "}
+                      {robotState ? `${robotState.battery_percentage}%` : "-"}
+                    </p>
+                    <p>
+                      Timestamp:{" "}
+                      {robotState
+                        ? new Date(robotState.timestamp).toLocaleString()
+                        : "-"}
+                    </p>
+                  </div>
+                </div>
+              ) : null}
+            </section>
           </section>
 
           <section className="card telemetry-card">
