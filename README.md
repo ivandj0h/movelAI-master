@@ -69,6 +69,7 @@ Required:
 - Git
 - Docker
 - Docker Compose
+- Make
 
 Optional for local development outside Docker:
 
@@ -88,11 +89,85 @@ git clone https://github.com/ivandj0h/movelAI-master.git
 cd movelAI-master
 ```
 
-### 2. Prepare Environment File
+### 2. Start Everything
 
 ```bash
-cp .env.example .env
+make up
 ```
+
+This command will:
+
+- create `.env` from `.env.example` if it does not exist
+- start the provided ROS simulation from `docker-compose-assignment.yaml`
+- build and start the project services
+- show running containers
+- show backend health
+- show latest robot state
+
+The started services are:
+
+- `web-ros`
+- `movel-ros-plugin`
+- `movel-backend`
+- `movel-frontend`
+
+### 3. Open the Frontend
+
+```text
+http://localhost:3000
+```
+
+### 4. Stop Everything
+
+```bash
+make down
+```
+
+---
+
+## Useful Commands
+
+Check running containers:
+
+```bash
+make status
+```
+
+Follow logs:
+
+```bash
+make logs
+```
+
+Check backend health:
+
+```bash
+make health
+```
+
+Check latest robot state:
+
+```bash
+make state
+```
+
+Print frontend URL:
+
+```bash
+make frontend
+```
+
+Restart all services:
+
+```bash
+make restart
+```
+
+---
+
+## Environment Variables
+
+The `make up` command automatically creates `.env` from `.env.example` if `.env` does not exist.
 
 Default values:
 
@@ -110,80 +185,29 @@ ROSBRIDGE_HOST=127.0.0.1
 ROSBRIDGE_PORT=9090
 ```
 
-### 3. Start the Provided ROS Simulation
-
-The provided simulation compose file should be available as:
-
-```text
-docker-compose-assignment.yaml
-```
-
-Start it first:
-
-```bash
-docker compose -f docker-compose-assignment.yaml up -d
-```
-
-Check that the simulation container is running:
-
-```bash
-docker ps --filter "name=web-ros"
-```
-
-### 4. Start This Project
-
-```bash
-docker compose up --build -d
-```
-
-This starts:
-
-- `movel-backend`
-- `movel-frontend`
-- `movel-ros-plugin`
-
-### 5. Open the Frontend
-
-```text
-http://localhost:3000
-```
-
 ---
 
 ## How to Verify
 
-### 1. Check ROS Topics
-
-List topics from the provided ROS container:
+### 1. Check that all containers are running
 
 ```bash
-docker exec web-ros bash -lc 'source /ros_entrypoint.sh && rostopic list'
+make status
 ```
 
-Expected topics include:
+Expected containers include:
 
 ```text
-/pose
-/battery_percentage
-/cmd
+web-ros
+movel-ros-plugin
+movel-backend
+movel-frontend
 ```
 
-Check pose data:
+### 2. Check backend health
 
 ```bash
-docker exec web-ros bash -lc 'source /ros_entrypoint.sh && timeout 5 rostopic echo /pose || true'
-```
-
-Check battery data:
-
-```bash
-docker exec web-ros bash -lc 'source /ros_entrypoint.sh && timeout 5 rostopic echo /battery_percentage || true'
-```
-
-### 2. Check Backend Health
-
-```bash
-curl http://localhost:4000/health
+make health
 ```
 
 Expected result:
@@ -196,10 +220,10 @@ Expected result:
 }
 ```
 
-### 3. Check Robot State
+### 3. Check robot state
 
 ```bash
-curl http://localhost:4000/api/robot/state
+make state
 ```
 
 Expected result:
@@ -208,15 +232,15 @@ Expected result:
 {
   "robot_id": "robot-1",
   "position": {
-    "x": 1,
-    "y": -1
+    "x": 0,
+    "y": 0
   },
-  "battery_percentage": 101,
+  "battery_percentage": 1,
   "timestamp": "..."
 }
 ```
 
-### 4. Check Frontend Control
+### 4. Check frontend control
 
 Open:
 
