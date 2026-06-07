@@ -116,6 +116,27 @@ function App() {
     };
   }, [robotState]);
 
+
+  const displayPosition = useMemo(() => {
+    const rawX = robotState?.position.x ?? 0;
+    const rawY = robotState?.position.y ?? 0;
+
+    return {
+      x: rawY,
+      y: rawX,
+    };
+  }, [robotState]);
+
+  const initialDisplayPosition = useMemo(() => {
+    const rawX = initialRobotState?.position.x ?? 0;
+    const rawY = initialRobotState?.position.y ?? 0;
+
+    return {
+      x: rawY,
+      y: rawX,
+    };
+  }, [initialRobotState]);
+
   return (
     <main className="app-shell">
       <section className="panel">
@@ -161,8 +182,8 @@ function App() {
                   <div>
                     <h3>Initial Position Data</h3>
                     <p>Robot ID: {initialRobotState?.robot_id ?? "-"}</p>
-                    <p>X Position: {initialRobotState?.position.x ?? "-"}</p>
-                    <p>Y Position: {initialRobotState?.position.y ?? "-"}</p>
+                    <p>X Position: {initialRobotState ? initialDisplayPosition.x : "-"}</p>
+                    <p>Y Position: {initialRobotState ? initialDisplayPosition.y : "-"}</p>
                     <p>
                       Battery:{" "}
                       {initialRobotState
@@ -180,8 +201,8 @@ function App() {
                   <div>
                     <h3>Latest Position After W/A/S/D</h3>
                     <p>Last Command: {lastCommand ?? "-"}</p>
-                    <p>X Position: {robotState?.position.x ?? "-"}</p>
-                    <p>Y Position: {robotState?.position.y ?? "-"}</p>
+                    <p>X Position: {robotState ? displayPosition.x : "-"}</p>
+                    <p>Y Position: {robotState ? displayPosition.y : "-"}</p>
                     <p>
                       Battery:{" "}
                       {robotState ? `${robotState.battery_percentage}%` : "-"}
@@ -209,11 +230,11 @@ function App() {
               <div className="telemetry-list">
                 <div>
                   <span>X Position</span>
-                  <strong>{robotState.position.x}</strong>
+                  <strong>{displayPosition.x}</strong>
                 </div>
                 <div>
                   <span>Y Position</span>
-                  <strong>{robotState.position.y}</strong>
+                  <strong>{displayPosition.y}</strong>
                 </div>
                 <div>
                   <span>Battery</span>
